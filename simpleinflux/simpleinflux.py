@@ -161,7 +161,11 @@ def read_one(
 def read_latest(
     measurement, field_keys=None, tag_keys=None, host=None, port=None, db=None
 ):
-    query = f'SELECT LAST(*) FROM "{measurement}"'
+    # You would imagine that this works:
+    # query = f'SELECT LAST(*) FROM "{measurement}"'
+    # But no, the returned time is 0. This was supposed to be fixed, but somehow isnt always
+    # So we have to use this stupid workaround:
+    query = f'SELECT * FROM "{measurement}" ORDER BY time LIMIT 1'
 
     res = _query_request(query, host=host, port=port, db=db)
 
