@@ -3,23 +3,15 @@ import datetime
 import requests
 import socket
 
-import simpleinflux  # in order to access the package-level variable default_db
+import simpleinflux  # in order to access the package-level variables default_*
 
 time_unit_multipliers = {"s": 1000 ** 3, "ms": 1000 ** 2, "us": 1000, "ns": 1}
 INFLUXDB_TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
 
-def _create_data_string(measurement, timestamp, field_dict, tag_dict={}, precision="s"):
-
-    return data_string
-
-
 def _port_reachable(host="localhost", port=8086):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        if sock.connect_ex((host, port)) == 0:
-            return True
-        else:
-            return False
+        return sock.connect_ex((host, port)) == 0
 
 
 def ping(raise_on_fail=True, host="localhost", port=8086):
@@ -89,6 +81,12 @@ def get_databases(host="localhost", port=8086):
     # Turn the wild output string into a list:
     databases = [l[0] for l in res.json()["results"][0]["series"][0]["values"]]
     return databases
+
+
+def create_database(db, host=None, port=None):
+    query = f"CREATE DATABASE {db}"
+    res = _query_request(query, host=host, port=port)
+    return res.ok
 
 
 def get_measurements(db=None, host="localhost", port=8086):
@@ -246,6 +244,8 @@ def read_special_range(
     res = _query_request(query, host=host, port=port, db=db)
 
     field_keys = res.json()["results"][0]["series"][0]["columns"]
+    # Remove 'mean_' from the returned field names:
+    field_keys = [key[5:] if key.startswith("mean_") else key for key in field_keys]
     field_values = res.json()["results"][0]["series"][0]["values"]
     values_list_of_lists = [
         [v[i] for v in field_values] for i in range(len(field_values[0]))
