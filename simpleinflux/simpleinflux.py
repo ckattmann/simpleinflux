@@ -130,7 +130,6 @@ def write(
         data=data_string.encode(),
         headers={"Content-Type": "application/octet-stream"},
     )
-    # print(res.url + res.text)
     return True
 
 
@@ -144,6 +143,8 @@ def read_one(
     port=None,
     db=None,
 ):
+
+    # TODO: Option for output_time_unit
     # TODO: Check time_unit contents
     timestamp_ns = timestamp * time_unit_multipliers[time_unit]
 
@@ -159,18 +160,25 @@ def read_one(
 
 
 def read_latest(
-    measurement, field_keys=None, tag_keys=None, host=None, port=None, db=None
+    measurement,
+    field_keys=None,
+    tag_keys=None,
+    host=None,
+    port=None,
+    db=None,
+    output_time_unit="s",
 ):
     # You would imagine that this works:
     # query = f'SELECT LAST(*) FROM "{measurement}"'
     # But no, the returned time is 0. This was supposed to be fixed, but somehow isnt always
     # So we have to use this stupid workaround:
-    query = f'SELECT * FROM "{measurement}" ORDER BY time LIMIT 1'
+    query = f'SELECT * FROM "{measurement}" ORDER BY time DESC LIMIT 1'
 
-    res = _query_request(query, host=host, port=port, db=db)
+    res = _query_request(
+        query, host=host, port=port, db=db, output_time_unit=output_time_unit
+    )
 
     field_keys = res.json()["results"][0]["series"][0]["columns"]
-    # TODO: Option to remove last_ from every key?
     field_values = res.json()["results"][0]["series"][0]["values"][0]
     data_dict = {f: v for f, v, in zip(field_keys, field_values)}
 
@@ -180,6 +188,8 @@ def read_latest(
 def read_range(
     measurement, start_timestamp, end_timestamp, aggregation=None, field_keys=None
 ):
+
+    # TODO: Option for output_time_unit
     query = f'SELECT * FROM "{measurement}" WHERE time>{start_timestamp} and time>{end_timestamp}'
 
     res = _query_request(query, host=host, port=port, db=db)
@@ -201,6 +211,8 @@ def read_special_range(
     port=None,
     db=None,
 ):
+
+    # TODO: Option for output_time_unit
     if range_identifier == "today":
         start_of_today = datetime.datetime.now().replace(
             hour=0, minute=0, second=0, microsecond=0
