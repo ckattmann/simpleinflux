@@ -36,13 +36,22 @@ data = influx.read_latest(measurement)
 print(data)
 
 print()
-print("=========== read_special_range ========================")
+print("=========== read_special_range: today, no aggregation ========================")
 data = influx.read_special_range(measurement, range_identifier="today")
 print(data)
 
 print()
-print("=========== read_special_range ========================")
+print("=========== read_special_range: today, 10m aggregation ========================")
 data = influx.read_special_range(
     measurement, range_identifier="today", aggregation="10m"
+)
+print(data)
+
+print()
+print(
+    "=========== read_special_range: this week, 10m aggregation ========================"
+)
+data = influx.read_special_range(
+    measurement, range_identifier="thisweek", aggregation="10m"
 )
 print(data)
