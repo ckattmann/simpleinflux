@@ -55,3 +55,13 @@ data = influx.read_special_range(
     measurement, range_identifier="thisweek", aggregation="10m"
 )
 print(data)
+
+
+print()
+print(
+    "=========== read_special_range: last 2 weeks, 10m aggregation ========================"
+)
+data = influx.read_special_range(
+    measurement, range_identifier="last2weeks", aggregation="10m"
+)
+print(data)

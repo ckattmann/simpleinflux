@@ -229,6 +229,16 @@ def read_special_range(
 
         time_specifier = f"time >= '{first_ts_thisweek.strftime(INFLUXDB_TIME_FORMAT)}' and time < '{first_ts_thisweek.strftime(INFLUXDB_TIME_FORMAT)}' + 7d"
 
+    elif range_identifier == "last2weeks":
+        first_ts_today = datetime.datetime.now().replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        first_ts_thisweek = first_ts_today - datetime.timedelta(
+            days=first_ts_today.weekday()
+        )
+
+        time_specifier = f"time >= '{first_ts_thisweek.strftime(INFLUXDB_TIME_FORMAT)}' - 7d and time < '{first_ts_thisweek.strftime(INFLUXDB_TIME_FORMAT)}' + 7d"
+
     # elif range_identifier == "all":
     #     time_specifier = ""
 
@@ -245,7 +255,7 @@ def read_special_range(
     #     "last_year": "",
     # }
 
-    if aggregation == None:
+    if aggregation == None or aggregation.lower() == "none":
         select = "*"
         groupby = ""
     else:
