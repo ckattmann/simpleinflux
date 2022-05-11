@@ -239,11 +239,22 @@ def read_special_range(
 
         time_specifier = f"time >= '{first_ts_thisweek.strftime(INFLUXDB_TIME_FORMAT)}' - 7d and time < '{first_ts_thisweek.strftime(INFLUXDB_TIME_FORMAT)}' + 7d"
 
-    # elif range_identifier == "all":
-    #     time_specifier = ""
+    elif range_identifier == "alltime":
+        # Find first and last timestamps in the database:
+        query = f'SELECT * FROM "{measurement}" ORDER BY time ASC LIMIT 1'
+        res = _query_request(query, host=host, port=port, db=db)
+        first_timestamp_s = res.json()["results"][0]["series"][0]["values"][0][0]
+
+        query = f'SELECT * FROM "{measurement}" ORDER BY time DESC LIMIT 1'
+        res = _query_request(query, host=host, port=port, db=db)
+        last_timestamp_s = res.json()["results"][0]["series"][0]["values"][0][0]
+
+        time_specifier = f"time >= {first_timestamp_s}s and time < {last_timestamp_s}s"
 
     else:
-        raise NotImplementedError('range_identifier must be one of "today"')
+        raise NotImplementedError(
+            'range_identifier must be one of "today", "thisweek", "last2weeks", or "alltime"'
+        )
 
     # time_specifier_map = {
     #     "this_week": "",

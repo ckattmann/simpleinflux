@@ -1,6 +1,6 @@
 """ simpleinflux - A simple frontend for InfluxDB """
 
-__version__ = "0.0.6"
+__version__ = "0.0.7"
 
 default_host = "localhost"
 default_port = 8086
