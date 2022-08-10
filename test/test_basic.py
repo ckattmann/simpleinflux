@@ -5,15 +5,13 @@ import pytest
 
 import simpleinflux
 
-simpleinflux.default_host = "localhost"
-simpleinflux.default_port = 8086
+import fixtures
 
-db = "test_" + str(uuid.uuid4()).replace("-", "")
-db2 = "test_" + str(uuid.uuid4()).replace("-", "")
-simpleinflux.default_db = db
+test_db_name = "fajsdfhlakjsdhgfkjh"
+test_db = fixtures.test_db
+test_msmt = "msmt"
 
-measurement = "msmt"
-simpleinflux.default_measurement = measurement
+simpleinflux.default_db = fixtures.db
 
 
 def test_ping():
@@ -30,49 +28,40 @@ def test_get_version():
 
 def test_create_and_drop_database():
     databases = simpleinflux.get_databases()
-    assert db not in databases
+    assert test_db_name not in databases
 
-    ok = simpleinflux.create_database(db)
+    ok = simpleinflux.create_database(test_db_name)
     assert ok
 
     databases = simpleinflux.get_databases()
-    assert db in databases
+    assert test_db_name in databases
 
-    ok = simpleinflux.drop_database(db)
+    ok = simpleinflux.drop_database(test_db_name)
     assert ok
 
     databases = simpleinflux.get_databases()
-    assert db not in databases
-
-
-@pytest.fixture
-def test_db():
-    simpleinflux.create_database(db)
-    assert db in simpleinflux.get_databases()
-    yield
-    simpleinflux.drop_database(db)
-    assert db not in simpleinflux.get_databases()
+    assert test_db_name not in databases
 
 
 def test_write(test_db):
-    write_ok = simpleinflux.write(time.time(), {"temp": 20.0}, measurement=measurement)
+    write_ok = simpleinflux.write(test_msmt, time.time(), {"temp": 20.0})
     assert write_ok
 
 
 def get_measurement(test_db):
-    assert simpleinflux.write(time.time(), {"temp": 20.0}, measurement=measurement)
+    assert simpleinflux.write(test_msmt, time.time(), {"temp": 20.0})
     measurements = simpleinflux.get_measurements()
-    assert measurement in measurements
+    assert test_msmt in measurements
 
 
 def test_read_one(test_db):
     timestamp_list_s = (1_654_505_295, 1_654_505_296, 1_654_505_297)
     test_data_dict = {"temperature": 12}
     for timestamp_s in timestamp_list_s:
-        assert simpleinflux.write(timestamp_s, test_data_dict)
+        assert simpleinflux.write(test_msmt, timestamp_s, test_data_dict)
 
     for timestamp_s in timestamp_list_s:
-        data = simpleinflux.read_one(timestamp_s)
+        data = simpleinflux.read_one(test_msmt, timestamp_s)
         assert data["time"] == timestamp_s
         assert data["temperature"] == test_data_dict["temperature"]
 
@@ -83,13 +72,15 @@ def test_read_one_timeunit(test_db):
 
     # Write with nanosecond precision:
     for timestamp_s in timestamp_list_s:
-        assert simpleinflux.write(timestamp_s * 1e9, test_data_dict, precision="n")
+        assert simpleinflux.write(
+            test_msmt, timestamp_s * 1e9, test_data_dict, precision="n"
+        )
 
     # Read with millisecond precision and return millisecond precision:
     for timestamp_s in timestamp_list_s:
         timestamp_ms = timestamp_s * 1000
         data = simpleinflux.read_one(
-            timestamp_ms, time_unit="ms", output_time_unit="ms"
+            test_msmt, timestamp_ms, timestamp_unit="ms", output_timestamp_unit="ms"
         )
         assert data["time"] == timestamp_ms
         assert data["temperature"] == test_data_dict["temperature"]
@@ -99,10 +90,26 @@ def test_read_all(test_db):
     timestamp_list_s = (1_654_505_295, 1_654_505_296, 1_654_505_297)
     test_data_dict = {"temperature": 12}
     for timestamp_s in timestamp_list_s:
-        assert simpleinflux.write(timestamp_s, test_data_dict)
-    data = simpleinflux.read_all()
+        assert simpleinflux.write(test_msmt, timestamp_s, test_data_dict)
+    data = simpleinflux.read_all(test_msmt)
     assert data["time"] == list(timestamp_list_s)
     assert data["temperature"] == [12, 12, 12]
+
+
+def test_read_field(test_db):
+    timestamp_list_s = (1_654_505_295, 1_654_505_296, 1_654_505_297)
+    test_data_dict = {"temperature": 12, "pressure": 999}
+    for timestamp_s in timestamp_list_s:
+        assert simpleinflux.write(test_msmt, timestamp_s, test_data_dict)
+    data = simpleinflux.read_all(test_msmt, field_keys=["temperature"])
+    assert data["time"] == list(timestamp_list_s)
+    assert data["temperature"] == [12, 12, 12]
+    assert "pressure" not in data
+
+    data = simpleinflux.read_all(test_msmt, field_keys=["pressure"])
+    assert data["time"] == list(timestamp_list_s)
+    assert data["pressure"] == [999, 999, 999]
+    assert "temperature" not in data
 
 
 # ============================================================================
@@ -130,7 +137,7 @@ def donttest_run():
 
     for timestamp_s in timestamp_list_s:
         success = simpleinflux.write(
-            timestamp_s, {"temperature": 12}, measurement=test_measurement
+            timestamp_s, {"temperature": 12}, measurement=test_msmt
         )
         assert success
 
